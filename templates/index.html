@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de KPI de Estoque</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f1f3d 0%, #1a3560 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 40px 44px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    /* ── Logo ──────────────────────────────────────────────── */
+    .logo { text-align: center; margin-bottom: 28px; }
+    .logo h1 { color: #1F3864; font-size: 23px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo h1 span { color: #ED7D31; }
+    .logo p { color: #777; font-size: 13px; margin-top: 5px; }
+
+    /* ── Badges ─────────────────────────────────────────────── */
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 24px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #EEF4FB; border: 1px solid #BDD7EE;
+      border-radius: 20px; padding: 4px 11px;
+      font-size: 11.5px; color: #1F3864; font-weight: 500;
+    }
+
+    /* ── Alertas ─────────────────────────────────────────────── */
+    .alerta {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 16px; line-height: 1.5;
+    }
+    .alerta.erro { background: #FFE7E7; color: #C00000; border: 1px solid #ffb3b3; }
+
+    /* ── Período ──────────────────────────────────────────────── */
+    .periodo-section {
+      margin-top: 18px; padding: 16px 18px;
+      background: #F0F4FF; border-radius: 10px;
+      border: 1px solid #BDD7EE;
+    }
+    .periodo-section h3 {
+      color: #1F3864; font-size: 12.5px; font-weight: 700;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
+    .periodo-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .periodo-field { flex: 1; min-width: 140px; }
+    .periodo-field label {
+      display: block; font-size: 11px; color: #555;
+      font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .periodo-field input[type="month"] {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #BDD7EE; font-size: 13px; color: #1F3864;
+      background: #fff; outline: none;
+    }
+    .periodo-field input[type="month"]:focus { border-color: #2E74B5; }
+    .periodo-hint {
+      font-size: 11px; color: #888; margin-top: 8px; text-align: center;
+    }
+    .drop-zone {
+      border: 2px dashed #BDD7EE;
+      border-radius: 10px;
+      padding: 38px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      background: #fafcff;
+      user-select: none;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #2E74B5;
+      background: #EEF4FB;
+    }
+    .drop-zone .icon { font-size: 42px; line-height: 1; }
+    .drop-zone p { color: #555; font-size: 14px; margin: 10px 0 4px; }
+    .drop-zone small { color: #aaa; font-size: 12px; }
+
+    input[type="file"] { display: none; }
+
+    .file-name {
+      margin-top: 10px; font-size: 13px;
+      color: #2E74B5; font-weight: 600;
+      text-align: center; display: none;
+    }
+
+    /* ── Botão ───────────────────────────────────────────────── */
+    .btn-gerar {
+      width: 100%; margin-top: 18px; padding: 14px;
+      background: #1F3864; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+      letter-spacing: 0.2px;
+    }
+    .btn-gerar:hover:not(:disabled) { background: #2E74B5; }
+    .btn-gerar:disabled { background: #b0b8c5; cursor: not-allowed; }
+
+    /* ── Loading ─────────────────────────────────────────────── */
+    .loading {
+      display: none; text-align: center;
+      color: #2E74B5; font-size: 13px; margin-top: 10px;
+    }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #BDD7EE; border-top-color: #2E74B5;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Instruções ──────────────────────────────────────────── */
+    .instrucoes {
+      margin-top: 24px; padding: 16px 18px;
+      background: #f8f9fb; border-radius: 8px;
+      border-left: 4px solid #ED7D31;
+    }
+    .instrucoes h3 { color: #1F3864; font-size: 12.5px; margin-bottom: 8px; font-weight: 700; }
+    .instrucoes ul { list-style: none; padding: 0; }
+    .instrucoes li { font-size: 12px; color: #555; padding: 3px 0; }
+    .instrucoes li::before { content: "✔ "; color: #2E74B5; font-weight: bold; }
+    .instrucoes li strong { color: #1F3864; }
+
+    /* ── Output Info ─────────────────────────────────────────── */
+    .output-info {
+      margin-top: 14px; padding: 12px 14px;
+      background: #E2EFDA; border-radius: 8px;
+      border-left: 4px solid #375623;
+      font-size: 12px; color: #375623;
+    }
+    .output-info strong { display: block; margin-bottom: 4px; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- Logo -->
+  <div class="logo">
+    <h1>Gerador de <span>KPI</span> de Estoque</h1>
+    <p>Controle de Materiais — UHE Estrela</p>
+  </div>
+
+  <!-- Badges -->
+  <div class="badges">
+    <span class="badge">📊 Top 20 por Mês</span>
+    <span class="badge">🏆 Saída por Grupo</span>
+    <span class="badge">📋 Resumo Geral</span>
+    <span class="badge">🔤 Classificação ABC</span>
+    <span class="badge">💰 Valor por Categoria</span>
+    <span class="badge">⚠️ Alerta de Estoque</span>
+    <span class="badge">💀 Estoque Morto</span>
+  </div>
+
+  <!-- Alertas Flask -->
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alerta {{ cat }}">
+          <span>⚠️</span>
+          <span>{{ msg }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Formulário -->
+  <form action="/gerar" method="post" enctype="multipart/form-data" id="form">
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('arquivo').click()">
+      <div class="icon">📂</div>
+      <p>Clique ou arraste a planilha de estoque aqui</p>
+      <small>Formatos aceitos: .xlsx · .xls</small>
+    </div>
+
+    <div class="file-name" id="fileName"></div>
+    <input type="file" name="arquivo" id="arquivo" accept=".xlsx,.xls" onchange="onFileSelected(this)" />
+
+    <!-- Seletor de Período -->
+    <div class="periodo-section">
+      <h3>📅 Filtrar período (opcional)</h3>
+      <div class="periodo-row">
+        <div class="periodo-field">
+          <label>De (mês/ano)</label>
+          <input type="month" name="data_inicio" id="dataInicio" />
+        </div>
+        <div class="periodo-field">
+          <label>Até (mês/ano)</label>
+          <input type="month" name="data_fim" id="dataFim" />
+        </div>
+      </div>
+      <p class="periodo-hint">Se não informado, todos os meses da planilha serão processados.</p>
+    </div>
+
+    <button type="submit" class="btn-gerar" id="btnGerar" disabled>
+      ⚡ Gerar KPI
+    </button>
+
+    <div class="loading" id="loading">
+      <span class="spinner"></span> Processando planilha, aguarde...
+    </div>
+  </form>
+
+  <!-- Instruções -->
+  <div class="instrucoes">
+    <h3>Requisitos da planilha de estoque:</h3>
+    <ul>
+      <li>Aba <strong>ESTOQUE</strong>: COD, GRUPO, DESCRIÇÃO, SALDO, VALOR UNIT</li>
+      <li>Aba <strong>ENTRADA</strong>: DATA, COD, GRUPO, DESCRIÇÃO, QUANT</li>
+      <li>Aba <strong>SAIDA</strong>: DATA, COD, GRUPO, DESCRIÇÃO, UNID, QUANT</li>
+    </ul>
+  </div>
+
+  <!-- O que será gerado -->
+  <div class="output-info">
+    <strong>📥 O arquivo KPI gerado terá:</strong>
+    Uma aba por mês com Top 20 + Saída por Grupo · Resumo Geral consolidado ·
+    Classificação ABC · Valor por Categoria · Estoque Morto ·
+    <strong>⚠ Alerta de Estoque</strong> (RUPTURA / CRÍTICO / NORMAL com cores automáticas)
+  </div>
+
+</div>
+
+<script>
+  const dropZone  = document.getElementById("dropZone");
+  const fileInput = document.getElementById("arquivo");
+  const btnGerar  = document.getElementById("btnGerar");
+  const fileName  = document.getElementById("fileName");
+  const loading   = document.getElementById("loading");
+
+  function onFileSelected(input) {
+    if (input.files && input.files[0]) {
+      fileName.textContent = "📄 " + input.files[0].name;
+      fileName.style.display = "block";
+      btnGerar.disabled = false;
+    }
+  }
+
+  document.getElementById("form").addEventListener("submit", function () {
+    btnGerar.disabled = true;
+    btnGerar.textContent = "⏳ Gerando...";
+    loading.style.display = "block";
+    // Re-habilita após 60s caso o download já tenha iniciado
+    setTimeout(() => {
+      btnGerar.disabled = false;
+      btnGerar.textContent = "⚡ Gerar KPI";
+      loading.style.display = "none";
+    }, 60000);
+  });
+
+  dropZone.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropZone.classList.add("drag-over");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    const files = e.dataTransfer.files;
+    if (files.length) {
+      const dt = new DataTransfer();
+      dt.items.add(files[0]);
+      fileInput.files = dt.files;
+      onFileSelected(fileInput);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Uploads e outputs gerados localmente
+uploads/
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Planilhas de teste (não subir dados reais)
+*.xlsx
+*.xls
