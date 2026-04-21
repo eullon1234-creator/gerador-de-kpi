@@ -8,8 +8,9 @@ from kpi_generator import gerar_kpi
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-OUTPUT_FOLDER = os.path.join(os.path.dirname(__file__), "outputs")
+# Na Vercel, o único diretório gravável é o /tmp
+UPLOAD_FOLDER = "/tmp"
+OUTPUT_FOLDER = "/tmp"
 ALLOWED_EXTENSIONS = {"xlsx", "xls"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
