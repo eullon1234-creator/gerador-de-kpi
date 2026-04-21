@@ -3,237 +3,323 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gerador de KPI de Estoque</title>
+  <title>KPI Master — Gestão de Estoque</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #1F3864;
+      --accent: #ED7D31;
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      --glass: rgba(255, 255, 255, 0.95);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(135deg, #0f1f3d 0%, #1a3560 100%);
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-gradient);
+      background-attachment: fixed;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      color: #1e293b;
+    }
+
+    /* Animated background effect */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(31, 56, 100, 0.2) 0%, transparent 50%);
+      z-index: -1;
+      animation: pulseBg 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseBg {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.2); opacity: 0.8; }
     }
 
     .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 40px 44px;
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 48px;
       width: 100%;
-      max-width: 540px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      max-width: 600px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0;
+      width: 150px; height: 150px;
+      background: linear-gradient(135deg, var(--accent) 0%, transparent 70%);
+      opacity: 0.05;
+      pointer-events: none;
     }
 
     /* ── Logo ──────────────────────────────────────────────── */
-    .logo { text-align: center; margin-bottom: 28px; }
-    .logo h1 { color: #1F3864; font-size: 23px; font-weight: 700; letter-spacing: -0.3px; }
-    .logo h1 span { color: #ED7D31; }
-    .logo p { color: #777; font-size: 13px; margin-top: 5px; }
+    .logo { text-align: center; margin-bottom: 32px; }
+    .logo h1 { 
+      font-family: 'Outfit', sans-serif;
+      color: var(--primary); 
+      font-size: 32px; 
+      font-weight: 700; 
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .logo h1 span { color: var(--accent); }
+    .logo p { color: #64748b; font-size: 14px; font-weight: 500; }
 
     /* ── Badges ─────────────────────────────────────────────── */
-    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 24px; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: #EEF4FB; border: 1px solid #BDD7EE;
-      border-radius: 20px; padding: 4px 11px;
-      font-size: 11.5px; color: #1F3864; font-weight: 500;
+    .badges { 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      gap: 8px; 
+      margin-bottom: 32px; 
     }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 12px; padding: 6px 12px;
+      font-size: 12px; color: var(--primary); font-weight: 600;
+      transition: all 0.2s;
+    }
+    .badge:hover { transform: translateY(-2px); border-color: var(--accent); background: #fff; }
 
     /* ── Alertas ─────────────────────────────────────────────── */
     .alerta {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 12px 14px; border-radius: 8px;
-      font-size: 13px; margin-bottom: 16px; line-height: 1.5;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; border-radius: 12px;
+      font-size: 14px; margin-bottom: 20px; font-weight: 500;
+      animation: slideIn 0.3s ease-out;
     }
-    .alerta.erro { background: #FFE7E7; color: #C00000; border: 1px solid #ffb3b3; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } }
+    .alerta.erro { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
-    /* ── Período ──────────────────────────────────────────────── */
-    .periodo-section {
-      margin-top: 18px; padding: 16px 18px;
-      background: #F0F4FF; border-radius: 10px;
-      border: 1px solid #BDD7EE;
-    }
-    .periodo-section h3 {
-      color: #1F3864; font-size: 12.5px; font-weight: 700;
-      margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
-    }
-    .periodo-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-    .periodo-field { flex: 1; min-width: 140px; }
-    .periodo-field label {
-      display: block; font-size: 11px; color: #555;
-      font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
-    }
-    .periodo-field input[type="month"] {
-      width: 100%; padding: 8px 10px; border-radius: 6px;
-      border: 1px solid #BDD7EE; font-size: 13px; color: #1F3864;
-      background: #fff; outline: none;
-    }
-    .periodo-field input[type="month"]:focus { border-color: #2E74B5; }
-    .periodo-hint {
-      font-size: 11px; color: #888; margin-top: 8px; text-align: center;
-    }
+    /* ── Drop Zone ───────────────────────────────────────────── */
     .drop-zone {
-      border: 2px dashed #BDD7EE;
-      border-radius: 10px;
-      padding: 38px 20px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 20px;
+      padding: 48px 24px;
       text-align: center;
       cursor: pointer;
-      transition: border-color .2s, background .2s;
-      background: #fafcff;
-      user-select: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #f8fafc;
+      margin-bottom: 24px;
     }
     .drop-zone:hover, .drop-zone.drag-over {
-      border-color: #2E74B5;
-      background: #EEF4FB;
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 10px 20px -5px rgba(237, 125, 49, 0.1);
+      transform: scale(1.01);
     }
-    .drop-zone .icon { font-size: 42px; line-height: 1; }
-    .drop-zone p { color: #555; font-size: 14px; margin: 10px 0 4px; }
-    .drop-zone small { color: #aaa; font-size: 12px; }
+    .drop-zone .icon { 
+      font-size: 56px; 
+      margin-bottom: 16px; 
+      display: inline-block;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+    .drop-zone p { color: #334155; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .drop-zone small { color: #94a3b8; font-size: 13px; font-weight: 500; }
 
     input[type="file"] { display: none; }
 
     .file-name {
-      margin-top: 10px; font-size: 13px;
-      color: #2E74B5; font-weight: 600;
+      margin-top: -12px; margin-bottom: 20px;
+      padding: 10px 16px; background: #f0fdf4;
+      border: 1px solid #bbf7d0; border-radius: 10px;
+      font-size: 14px; color: #166534; font-weight: 600;
       text-align: center; display: none;
     }
 
+    /* ── Periodo & Configs ───────────────────────────────────── */
+    .settings-group {
+      background: #f1f5f9;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+    }
+    .settings-title {
+      font-size: 14px; font-weight: 700; color: var(--primary);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .settings-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+    }
+    .field label {
+      display: block; font-size: 11px; color: #64748b;
+      font-weight: 700; margin-bottom: 6px; text-transform: uppercase;
+    }
+    .field input {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid #cbd5e1; font-size: 14px; color: var(--primary);
+      background: #fff; transition: all 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(237, 125, 49, 0.1); }
+
+    /* Collapsible Config */
+    .config-details { margin-top: 12px; }
+    .config-details summary {
+      font-size: 13px; font-weight: 600; color: #64748b;
+      cursor: pointer; padding: 8px 0; outline: none;
+      transition: color 0.2s;
+    }
+    .config-details summary:hover { color: var(--accent); }
+    .config-content { padding-top: 12px; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+
     /* ── Botão ───────────────────────────────────────────────── */
     .btn-gerar {
-      width: 100%; margin-top: 18px; padding: 14px;
-      background: #1F3864; color: #fff;
-      border: none; border-radius: 8px;
-      font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: background .2s;
-      letter-spacing: 0.2px;
+      width: 100%; padding: 18px;
+      background: linear-gradient(135deg, var(--primary) 0%, #2e4a7d 100%);
+      color: #fff; border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700; font-family: 'Outfit', sans-serif;
+      cursor: pointer; transition: all 0.3s;
+      box-shadow: 0 10px 15px -3px rgba(31, 56, 100, 0.3);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
     }
-    .btn-gerar:hover:not(:disabled) { background: #2E74B5; }
-    .btn-gerar:disabled { background: #b0b8c5; cursor: not-allowed; }
+    .btn-gerar:hover:not(:disabled) { 
+      transform: translateY(-2px); 
+      box-shadow: 0 20px 25px -5px rgba(31, 56, 100, 0.4);
+      background: linear-gradient(135deg, #2e4a7d 0%, var(--primary) 100%);
+    }
+    .btn-gerar:active { transform: translateY(0); }
+    .btn-gerar:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; }
 
     /* ── Loading ─────────────────────────────────────────────── */
     .loading {
       display: none; text-align: center;
-      color: #2E74B5; font-size: 13px; margin-top: 10px;
+      color: var(--primary); font-size: 14px; margin-top: 20px; font-weight: 600;
     }
     .spinner {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid #BDD7EE; border-top-color: #2E74B5;
-      border-radius: 50%; animation: spin .7s linear infinite;
-      vertical-align: middle; margin-right: 6px;
+      display: inline-block; width: 20px; height: 20px;
+      border: 3px solid #e2e8f0; border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-right: 8px; vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Instruções ──────────────────────────────────────────── */
-    .instrucoes {
-      margin-top: 24px; padding: 16px 18px;
-      background: #f8f9fb; border-radius: 8px;
-      border-left: 4px solid #ED7D31;
+    /* ── Footer Info ─────────────────────────────────────────── */
+    .footer-sections {
+      margin-top: 32px; display: grid; gap: 16px;
     }
-    .instrucoes h3 { color: #1F3864; font-size: 12.5px; margin-bottom: 8px; font-weight: 700; }
-    .instrucoes ul { list-style: none; padding: 0; }
-    .instrucoes li { font-size: 12px; color: #555; padding: 3px 0; }
-    .instrucoes li::before { content: "✔ "; color: #2E74B5; font-weight: bold; }
-    .instrucoes li strong { color: #1F3864; }
+    .info-box {
+      padding: 16px; border-radius: 16px; font-size: 13px; line-height: 1.6;
+    }
+    .info-box.rules { background: #fff7ed; border: 1px solid #ffedd5; color: #9a3412; }
+    .info-box.output { background: #f0fdf4; border: 1px solid #dcfce7; color: #166534; }
+    .info-box h4 { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 
-    /* ── Output Info ─────────────────────────────────────────── */
-    .output-info {
-      margin-top: 14px; padding: 12px 14px;
-      background: #E2EFDA; border-radius: 8px;
-      border-left: 4px solid #375623;
-      font-size: 12px; color: #375623;
+    @media (max-width: 480px) {
+      .card { padding: 32px 24px; }
+      .logo h1 { font-size: 26px; }
     }
-    .output-info strong { display: block; margin-bottom: 4px; font-size: 12.5px; }
   </style>
 </head>
 <body>
 
 <div class="card">
-
-  <!-- Logo -->
   <div class="logo">
-    <h1>Gerador de <span>KPI</span> de Estoque</h1>
-    <p>Controle de Materiais — UHE Estrela</p>
+    <h1>KPI <span>Master</span></h1>
+    <p>Gestão Inteligente de Estoque • UHE Estrela</p>
   </div>
 
-  <!-- Badges -->
   <div class="badges">
-    <span class="badge">📊 Top 20 por Mês</span>
-    <span class="badge">🏆 Saída por Grupo</span>
-    <span class="badge">📋 Resumo Geral</span>
-    <span class="badge">🔤 Classificação ABC</span>
-    <span class="badge">💰 Valor por Categoria</span>
-    <span class="badge">⚠️ Alerta de Estoque</span>
-    <span class="badge">💀 Estoque Morto</span>
+    <span class="badge">📈 Curva ABC</span>
+    <span class="badge">📉 Estoque Morto</span>
+    <span class="badge">🚨 Alertas</span>
+    <span class="badge">📊 Top 20</span>
+    <span class="badge">💰 Valuation</span>
   </div>
 
-  <!-- Alertas Flask -->
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% if msgs %}
       {% for cat, msg in msgs %}
         <div class="alerta {{ cat }}">
-          <span>⚠️</span>
-          <span>{{ msg }}</span>
+          <span>⚠️</span> {{ msg }}
         </div>
       {% endfor %}
     {% endif %}
   {% endwith %}
 
-  <!-- Formulário -->
   <form action="/gerar" method="post" enctype="multipart/form-data" id="form">
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('arquivo').click()">
-      <div class="icon">📂</div>
-      <p>Clique ou arraste a planilha de estoque aqui</p>
-      <small>Formatos aceitos: .xlsx · .xls</small>
+      <span class="icon">📄</span>
+      <p>Arraste sua planilha aqui</p>
+      <small>Formatos aceitos: .xlsx ou .xls</small>
     </div>
 
     <div class="file-name" id="fileName"></div>
     <input type="file" name="arquivo" id="arquivo" accept=".xlsx,.xls" onchange="onFileSelected(this)" />
 
-    <!-- Seletor de Período -->
-    <div class="periodo-section">
-      <h3>📅 Filtrar período (opcional)</h3>
-      <div class="periodo-row">
-        <div class="periodo-field">
-          <label>De (mês/ano)</label>
+    <div class="settings-group">
+      <div class="settings-title">📅 Período de Análise</div>
+      <div class="settings-grid">
+        <div class="field">
+          <label>Data Início</label>
           <input type="month" name="data_inicio" id="dataInicio" />
         </div>
-        <div class="periodo-field">
-          <label>Até (mês/ano)</label>
+        <div class="field">
+          <label>Data Fim</label>
           <input type="month" name="data_fim" id="dataFim" />
         </div>
       </div>
-      <p class="periodo-hint">Se não informado, todos os meses da planilha serão processados.</p>
+
+      <details class="config-details">
+        <summary>⚙️ Ajustes Avançados</summary>
+        <div class="config-content">
+          <div class="settings-grid">
+            <div class="field">
+              <label>Estoque Morto (meses)</label>
+              <input type="number" name="meses_morto" value="3" min="1" max="24">
+            </div>
+            <div class="field">
+              <label>Curva A (%)</label>
+              <input type="number" name="abc_a" value="80" min="1" max="99">
+            </div>
+            <div class="field">
+              <label>Curva B (%)</label>
+              <input type="number" name="abc_b" value="95" min="1" max="99">
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
 
     <button type="submit" class="btn-gerar" id="btnGerar" disabled>
-      ⚡ Gerar KPI
+      <span>⚡</span> Gerar Relatório KPI
     </button>
 
     <div class="loading" id="loading">
-      <span class="spinner"></span> Processando planilha, aguarde...
+      <span class="spinner"></span> Processando dados...
     </div>
   </form>
 
-  <!-- Instruções -->
-  <div class="instrucoes">
-    <h3>Requisitos da planilha de estoque:</h3>
-    <ul>
-      <li>Aba <strong>ESTOQUE</strong>: COD, GRUPO, DESCRIÇÃO, SALDO, VALOR UNIT</li>
-      <li>Aba <strong>ENTRADA</strong>: DATA, COD, GRUPO, DESCRIÇÃO, QUANT</li>
-      <li>Aba <strong>SAIDA</strong>: DATA, COD, GRUPO, DESCRIÇÃO, UNID, QUANT</li>
-    </ul>
+  <div class="footer-sections">
+    <div class="info-box rules">
+      <h4>📌 Requisitos</h4>
+      A planilha deve conter as abas <strong>ESTOQUE</strong>, <strong>ENTRADA</strong> e <strong>SAÍDA</strong> com as colunas padrão (COD, DATA, QUANT, etc).
+    </div>
+    <div class="info-box output">
+      <h4>✅ Resultado</h4>
+      Relatório formatado com análise ABC, alertas de ruptura, valuation por categoria e visão mensal consolidada.
+    </div>
   </div>
-
-  <!-- O que será gerado -->
-  <div class="output-info">
-    <strong>📥 O arquivo KPI gerado terá:</strong>
-    Uma aba por mês com Top 20 + Saída por Grupo · Resumo Geral consolidado ·
-    Classificação ABC · Valor por Categoria · Estoque Morto ·
-    <strong>⚠ Alerta de Estoque</strong> (RUPTURA / CRÍTICO / NORMAL com cores automáticas)
-  </div>
-
 </div>
 
 <script>
@@ -245,37 +331,44 @@
 
   function onFileSelected(input) {
     if (input.files && input.files[0]) {
-      fileName.textContent = "📄 " + input.files[0].name;
+      fileName.textContent = "✅ " + input.files[0].name;
       fileName.style.display = "block";
       btnGerar.disabled = false;
+      
+      // Visual feedback on dropzone
+      dropZone.style.borderColor = "#22c55e";
+      dropZone.style.background = "#f0fdf4";
     }
   }
 
   document.getElementById("form").addEventListener("submit", function () {
     btnGerar.disabled = true;
-    btnGerar.textContent = "⏳ Gerando...";
+    btnGerar.innerHTML = "<span>⏳</span> Gerando Arquivo...";
     loading.style.display = "block";
-    // Re-habilita após 60s caso o download já tenha iniciado
+    
     setTimeout(() => {
       btnGerar.disabled = false;
-      btnGerar.textContent = "⚡ Gerar KPI";
+      btnGerar.innerHTML = "<span>⚡</span> Gerar Relatório KPI";
       loading.style.display = "none";
     }, 60000);
   });
 
-  dropZone.addEventListener("dragover", e => {
-    e.preventDefault();
-    dropZone.classList.add("drag-over");
+  // Drag and Drop events
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, e => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, false);
   });
+
+  dropZone.addEventListener("dragover", () => dropZone.classList.add("drag-over"));
   dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  
   dropZone.addEventListener("drop", e => {
-    e.preventDefault();
     dropZone.classList.remove("drag-over");
     const files = e.dataTransfer.files;
     if (files.length) {
-      const dt = new DataTransfer();
-      dt.items.add(files[0]);
-      fileInput.files = dt.files;
+      fileInput.files = files;
       onFileSelected(fileInput);
     }
   });

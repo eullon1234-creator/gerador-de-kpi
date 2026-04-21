@@ -1,4 +1,5 @@
 import os
+import time
 import uuid
 import pandas as pd
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for
@@ -17,6 +18,20 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 def _extensao_valida(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _limpar_arquivos_antigos():
+    """Remove arquivos com mais de 1 hora na pasta outputs para economizar espaço."""
+    agora = time.time()
+    if os.path.exists(OUTPUT_FOLDER):
+        for f in os.listdir(OUTPUT_FOLDER):
+            caminho = os.path.join(OUTPUT_FOLDER, f)
+            if os.path.isfile(caminho):
+                if (agora - os.path.getmtime(caminho)) > 3600:
+                    try:
+                        os.remove(caminho)
+                    except:
+                        pass
 
 
 @app.route("/")
@@ -57,8 +72,25 @@ def gerar():
         data_inicio = None
         data_fim    = None
 
+    # Limpeza preventiva de arquivos antigos
+    _limpar_arquivos_antigos()
+
+    # Parâmetros customizáveis
     try:
-        gerar_kpi(caminho_entrada, caminho_saida, data_inicio=data_inicio, data_fim=data_fim)
+        meses_morto = int(request.form.get("meses_morto", 3))
+        abc_a = float(request.form.get("abc_a", 80)) / 100.0
+        abc_b = float(request.form.get("abc_b", 95)) / 100.0
+    except (ValueError, TypeError):
+        meses_morto = 3
+        abc_a = 0.80
+        abc_b = 0.95
+
+    try:
+        gerar_kpi(
+            caminho_entrada, caminho_saida, 
+            data_inicio=data_inicio, data_fim=data_fim,
+            meses_morto=meses_morto, limite_abc_a=abc_a, limite_abc_b=abc_b
+        )
     except ValueError as e:
         flash(str(e), "erro")
         return redirect(url_for("index"))

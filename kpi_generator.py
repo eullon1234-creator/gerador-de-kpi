@@ -98,7 +98,7 @@ def _val(row, col):
 
 
 # ── Função Principal ──────────────────────────────────────────────────────────
-def gerar_kpi(caminho_entrada, caminho_saida, data_inicio=None, data_fim=None):
+def gerar_kpi(caminho_entrada, caminho_saida, data_inicio=None, data_fim=None, meses_morto=3, limite_abc_a=0.8, limite_abc_b=0.95):
 
     # 1. Ler abas
     df_saida = _ler_aba(caminho_entrada, "SAIDA", "SAÍDA", "Saida", "Saída")
@@ -208,7 +208,7 @@ def gerar_kpi(caminho_entrada, caminho_saida, data_inicio=None, data_fim=None):
 
     # 8. Classificação ABC
     ws_abc = wb.create_sheet("CLASS. ABC")
-    _gerar_abc(ws_abc, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant)
+    _gerar_abc(ws_abc, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant, limite_abc_a, limite_abc_b)
 
     # 9. Valor por Categoria (requer ESTOQUE com valores)
     if e_grupo and e_cod and (e_vtotal or (e_saldo and e_vunit)):
@@ -219,7 +219,7 @@ def gerar_kpi(caminho_entrada, caminho_saida, data_inicio=None, data_fim=None):
     if e_saldo and e_cod:
         ws_morto = wb.create_sheet("ESTOQUE MORTO")
         _gerar_estoque_morto(ws_morto, df_estoque, df_saida, s_cod, s_data,
-                             e_cod, e_grupo, e_desc, e_saldo, e_unid_e, e_vunit)
+                             e_cod, e_grupo, e_desc, e_saldo, e_unid_e, e_vunit, meses_morto)
 
     # 11. Alerta de Estoque (formatação condicional)
     if e_saldo and e_cod:
@@ -448,7 +448,7 @@ def _gerar_resumo_geral(ws, resumo_dados):
 
 
 # ── Classificação ABC ─────────────────────────────────────────────────────────
-def _gerar_abc(ws, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant):
+def _gerar_abc(ws, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant, limite_abc_a, limite_abc_b):
     ws.column_dimensions["A"].width = 5
     ws.column_dimensions["B"].width = 8
     ws.column_dimensions["C"].width = 14
@@ -470,9 +470,9 @@ def _gerar_abc(ws, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant):
 
     # Legendas
     for col, classe, cor_bg, desc in [
-        ("A", "CLASSE A", "375623", "Representa 80% do volume de saídas"),
-        ("D", "CLASSE B", "833C00", "Representa 15% do volume de saídas"),
-        ("F", "CLASSE C", C_VERMELHO, "Representa 5% do volume de saídas"),
+        ("A", "CLASSE A", "375623", f"Representa {int(limite_abc_a*100)}% do volume de saídas"),
+        ("D", "CLASSE B", "833C00", f"Representa {int((limite_abc_b-limite_abc_a)*100)}% do volume de saídas"),
+        ("F", "CLASSE C", C_VERMELHO, f"Representa {int((1-limite_abc_b)*100)}% do volume de saídas"),
     ]:
         ws[f"{col}4"].value = classe
         ws[f"{col}4"].fill = _fill(cor_bg)
@@ -509,7 +509,7 @@ def _gerar_abc(ws, df_saida, s_cod, s_grupo, s_desc, s_unid, s_quant):
     total = abc[s_quant].sum()
     abc["_PCT"]   = abc[s_quant] / total
     abc["_ACUM"]  = abc["_PCT"].cumsum()
-    abc["_CLASSE"] = abc["_ACUM"].apply(lambda x: "A" if x <= 0.80 else ("B" if x <= 0.95 else "C"))
+    abc["_CLASSE"] = abc["_ACUM"].apply(lambda x: "A" if x <= limite_abc_a else ("B" if x <= limite_abc_b else "C"))
 
     COR_CLASSE = {
         "A": ("375623", "E2EFDA"),
@@ -628,8 +628,8 @@ def _gerar_valor_categoria(ws, df_estoque, e_cod, e_grupo, e_saldo, e_vunit, e_v
 
 # ── Estoque Morto ─────────────────────────────────────────────────────────────
 def _gerar_estoque_morto(ws, df_estoque, df_saida, s_cod, s_data,
-                         e_cod, e_grupo, e_desc, e_saldo, e_unid_e, e_vunit):
-    MESES_CORTE = 3
+                         e_cod, e_grupo, e_desc, e_saldo, e_unid_e, e_vunit, meses_morto):
+    MESES_CORTE = meses_morto
 
     ws.column_dimensions["A"].width = 8
     ws.column_dimensions["B"].width = 14
