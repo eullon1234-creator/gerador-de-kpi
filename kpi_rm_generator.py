@@ -112,8 +112,11 @@ def _ler_planilha_rm(caminho):
     df_bruto = pd.read_excel(caminho, sheet_name=aba_escolhida, header=None)
     linha_cabecalho = 0
     for i in range(min(15, len(df_bruto))):
-        linha = df_bruto.iloc[i].astype(str).str.upper().str.strip()
-        texto = " ".join(linha.tolist())
+        linha = df_bruto.iloc[i]
+        texto = " ".join(
+            "" if pd.isna(valor) else str(valor).upper().strip()
+            for valor in linha.tolist()
+        )
         if ("LOCESTOQUE" in texto or "LOC ESTOQUE" in texto or "LOCAL" in texto) and \
            ("PRODUTO" in texto or "DESCRI" in texto) and \
            ("SALDO" in texto):
