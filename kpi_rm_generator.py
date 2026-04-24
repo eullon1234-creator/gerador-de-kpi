@@ -159,13 +159,17 @@ def gerar_kpi_rm(caminho_entrada, caminho_saida, top_grupos=10, top_itens=50,
     df[c_vfin]   = pd.to_numeric(df[c_vfin], errors="coerce").fillna(0)
     df = df.dropna(subset=[c_cod]).copy()
     df[c_cod]   = df[c_cod].astype(str).str.strip()
-    df[c_grupo] = df[c_grupo].astype(str).str.strip().str.upper()
+    # Normaliza GRUPO: itens sem grupo ficam como "(SEM GRUPO)" para não
+    # sumirem dos totais, mas são contados como 1 único "grupo especial"
+    # (não aumenta artificialmente a contagem de grupos reais).
+    df[c_grupo] = df[c_grupo].apply(
+        lambda x: str(x).strip().upper() if pd.notna(x) and str(x).strip() else "(SEM GRUPO)"
+    )
     df[c_prod]  = df[c_prod].astype(str).str.strip()
 
-    # Remove registros sem valor e sem saldo relevante
-    df_ativo = df[df[c_vfin] != 0].copy()
-    if df_ativo.empty:
-        df_ativo = df.copy()
+    # Mantém todos os itens (inclusive com saldo/valor zero) para bater com
+    # o total de itens ativos da planilha original do RM.
+    df_ativo = df.copy()
 
     # Identificar o Local de Estoque (pega o mais comum)
     if c_local and df_ativo[c_local].notna().any():
@@ -259,7 +263,9 @@ def _aba_resumo_executivo(ws, df, c_grupo, c_cod, c_saldo, c_cmedio, c_vfin,
 
     # ── KPIs — Cards superiores ────────────────────────────────────────────
     total_itens     = len(df)
-    total_grupos    = df[c_grupo].nunique()
+    # Conta grupos reais (ignora "(SEM GRUPO)" e nulos)
+    grupos_reais = df[c_grupo][df[c_grupo].notna() & (df[c_grupo] != "(SEM GRUPO)")]
+    total_grupos    = grupos_reais.nunique()
     saldo_total     = float(df[c_saldo].sum())
     custo_medio_ger = df[c_cmedio].mean() if len(df) else 0
 
@@ -470,7 +476,7 @@ def _aba_resumo_executivo(ws, df, c_grupo, c_cod, c_saldo, c_cmedio, c_vfin,
     # ── Top 10 Grupos (direita: cols G a L) ─────────────────────────────────
     por_grupo = (
         df.groupby(c_grupo)
-        .agg(QTD=(c_cod, "nunique"), VALOR=(c_vfin, "sum"))
+        .agg(QTD=(c_cod, "count"), VALOR=(c_vfin, "sum"))
         .reset_index()
         .sort_values("VALOR", ascending=False)
         .head(top_grupos)
@@ -645,7 +651,7 @@ def _aba_analise_grupo(ws, df, c_grupo, c_cod, c_saldo, c_cmedio, c_vfin, total_
     agg = (
         df.groupby(c_grupo)
         .agg(
-            QTD_ITENS=(c_cod, "nunique"),
+            QTD_ITENS=(c_cod, "count"),
             SALDO_TOTAL=(c_saldo, "sum"),
             CUSTO_MEDIO=(c_cmedio, "mean"),
             CUSTO_MAX=(c_cmedio, "max"),
