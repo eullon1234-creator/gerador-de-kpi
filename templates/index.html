@@ -52,12 +52,55 @@
       border-radius: 24px;
       padding: 48px;
       width: 100%;
-      max-width: 600px;
+      max-width: 640px;
       box-shadow: var(--shadow);
       border: 1px solid var(--glass-border);
       position: relative;
       overflow: hidden;
     }
+
+    /* ── Tabs ──────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      padding: 6px;
+      background: #f1f5f9;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      letter-spacing: 0.3px;
+    }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 4px 12px -4px rgba(31, 56, 100, 0.25);
+    }
+    .tab-btn.active .tab-dot { background: var(--accent); }
+    .tab-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #cbd5e1; transition: all 0.2s;
+    }
+    .tab-panel { display: none; animation: fadeIn 0.3s ease-out; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     .card::after {
       content: "";
@@ -239,14 +282,6 @@
     <p>Gestão Inteligente de Estoque • UHE Estrela</p>
   </div>
 
-  <div class="badges">
-    <span class="badge">📈 Curva ABC</span>
-    <span class="badge">📉 Estoque Morto</span>
-    <span class="badge">🚨 Alertas</span>
-    <span class="badge">📊 Top 20</span>
-    <span class="badge">💰 Valuation</span>
-  </div>
-
   {% with msgs = get_flashed_messages(with_categories=true) %}
     {% if msgs %}
       {% for cat, msg in msgs %}
@@ -257,123 +292,236 @@
     {% endif %}
   {% endwith %}
 
-  <form action="/gerar" method="post" enctype="multipart/form-data" id="form">
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('arquivo').click()">
-      <span class="icon">📄</span>
-      <p>Arraste sua planilha aqui</p>
-      <small>Formatos aceitos: .xlsx ou .xls</small>
+  <!-- Tabs Navigation -->
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab-btn active" data-tab="saida" role="tab">
+      <span class="tab-dot"></span> KPI SAÍDA
+    </button>
+    <button type="button" class="tab-btn" data-tab="rm" role="tab">
+      <span class="tab-dot"></span> KPI DO RM
+    </button>
+  </div>
+
+  <!-- ──────────── TAB 1: KPI SAÍDA (original) ──────────── -->
+  <div class="tab-panel active" id="panel-saida">
+    <div class="badges">
+      <span class="badge">📈 Curva ABC</span>
+      <span class="badge">📉 Estoque Morto</span>
+      <span class="badge">🚨 Alertas</span>
+      <span class="badge">📊 Top 20</span>
+      <span class="badge">💰 Valuation</span>
     </div>
 
-    <div class="file-name" id="fileName"></div>
-    <input type="file" name="arquivo" id="arquivo" accept=".xlsx,.xls" onchange="onFileSelected(this)" />
-
-    <div class="settings-group">
-      <div class="settings-title">📅 Período de Análise</div>
-      <div class="settings-grid">
-        <div class="field">
-          <label>Data Início</label>
-          <input type="month" name="data_inicio" id="dataInicio" />
-        </div>
-        <div class="field">
-          <label>Data Fim</label>
-          <input type="month" name="data_fim" id="dataFim" />
-        </div>
+    <form action="/gerar" method="post" enctype="multipart/form-data" id="form">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('arquivo').click()">
+        <span class="icon">📄</span>
+        <p>Arraste sua planilha aqui</p>
+        <small>Formatos aceitos: .xlsx ou .xls</small>
       </div>
 
-      <details class="config-details">
-        <summary>⚙️ Ajustes Avançados</summary>
-        <div class="config-content">
-          <div class="settings-grid">
-            <div class="field">
-              <label>Estoque Morto (meses)</label>
-              <input type="number" name="meses_morto" value="3" min="1" max="24">
-            </div>
-            <div class="field">
-              <label>Curva A (%)</label>
-              <input type="number" name="abc_a" value="80" min="1" max="99">
-            </div>
-            <div class="field">
-              <label>Curva B (%)</label>
-              <input type="number" name="abc_b" value="95" min="1" max="99">
-            </div>
+      <div class="file-name" id="fileName"></div>
+      <input type="file" name="arquivo" id="arquivo" accept=".xlsx,.xls" onchange="onFileSelected(this)" />
+
+      <div class="settings-group">
+        <div class="settings-title">📅 Período de Análise</div>
+        <div class="settings-grid">
+          <div class="field">
+            <label>Data Início</label>
+            <input type="month" name="data_inicio" id="dataInicio" />
+          </div>
+          <div class="field">
+            <label>Data Fim</label>
+            <input type="month" name="data_fim" id="dataFim" />
           </div>
         </div>
-      </details>
-    </div>
 
-    <button type="submit" class="btn-gerar" id="btnGerar" disabled>
-      <span>⚡</span> Gerar Relatório KPI
-    </button>
+        <details class="config-details">
+          <summary>⚙️ Ajustes Avançados</summary>
+          <div class="config-content">
+            <div class="settings-grid">
+              <div class="field">
+                <label>Estoque Morto (meses)</label>
+                <input type="number" name="meses_morto" value="3" min="1" max="24">
+              </div>
+              <div class="field">
+                <label>Curva A (%)</label>
+                <input type="number" name="abc_a" value="80" min="1" max="99">
+              </div>
+              <div class="field">
+                <label>Curva B (%)</label>
+                <input type="number" name="abc_b" value="95" min="1" max="99">
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
 
-    <div class="loading" id="loading">
-      <span class="spinner"></span> Processando dados...
-    </div>
-  </form>
+      <button type="submit" class="btn-gerar" id="btnGerar" disabled>
+        <span>⚡</span> Gerar Relatório KPI
+      </button>
 
-  <div class="footer-sections">
-    <div class="info-box rules">
-      <h4>📌 Requisitos</h4>
-      A planilha deve conter as abas <strong>ESTOQUE</strong>, <strong>ENTRADA</strong> e <strong>SAÍDA</strong> com as colunas padrão (COD, DATA, QUANT, etc).
-    </div>
-    <div class="info-box output">
-      <h4>✅ Resultado</h4>
-      Relatório formatado com análise ABC, alertas de ruptura, valuation por categoria e visão mensal consolidada.
+      <div class="loading" id="loading">
+        <span class="spinner"></span> Processando dados...
+      </div>
+    </form>
+
+    <div class="footer-sections">
+      <div class="info-box rules">
+        <h4>📌 Requisitos</h4>
+        A planilha deve conter as abas <strong>ESTOQUE</strong>, <strong>ENTRADA</strong> e <strong>SAÍDA</strong> com as colunas padrão (COD, DATA, QUANT, etc).
+      </div>
+      <div class="info-box output">
+        <h4>✅ Resultado</h4>
+        Relatório formatado com análise ABC, alertas de ruptura, valuation por categoria e visão mensal consolidada.
+      </div>
     </div>
   </div>
+
+  <!-- ──────────── TAB 2: KPI DO RM (novo) ──────────── -->
+  <div class="tab-panel" id="panel-rm">
+    <div class="badges">
+      <span class="badge">📊 Dashboard</span>
+      <span class="badge">📈 Curva ABC</span>
+      <span class="badge">🏷️ Por Grupo</span>
+      <span class="badge">🏆 Top 50</span>
+      <span class="badge">📐 Estatísticas</span>
+    </div>
+
+    <form action="/gerar-rm" method="post" enctype="multipart/form-data" id="formRM">
+      <div class="drop-zone" id="dropZoneRM" onclick="document.getElementById('arquivoRM').click()">
+        <span class="icon">📊</span>
+        <p>Arraste a planilha do RM aqui</p>
+        <small>Colunas: LOCESTOQUE, GRUPO, CODIGOPRD, PRODUTO, SALDO, CUSTOMEDIO, VALORFINANCEIRO</small>
+      </div>
+
+      <div class="file-name" id="fileNameRM"></div>
+      <input type="file" name="arquivo" id="arquivoRM" accept=".xlsx,.xls" onchange="onFileSelectedRM(this)" />
+
+      <div class="settings-group">
+        <div class="settings-title">⚙️ Parâmetros do Relatório</div>
+        <div class="settings-grid">
+          <div class="field">
+            <label>Top Grupos</label>
+            <input type="number" name="top_grupos" value="10" min="5" max="30">
+          </div>
+          <div class="field">
+            <label>Top Itens</label>
+            <input type="number" name="top_itens" value="50" min="10" max="200">
+          </div>
+        </div>
+
+        <details class="config-details">
+          <summary>⚙️ Ajustes Avançados (Curva ABC)</summary>
+          <div class="config-content">
+            <div class="settings-grid">
+              <div class="field">
+                <label>Curva A (%)</label>
+                <input type="number" name="abc_a_rm" value="80" min="1" max="99">
+              </div>
+              <div class="field">
+                <label>Curva B (%)</label>
+                <input type="number" name="abc_b_rm" value="95" min="1" max="99">
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <button type="submit" class="btn-gerar" id="btnGerarRM" disabled>
+        <span>📊</span> Gerar KPI do RM
+      </button>
+
+      <div class="loading" id="loadingRM">
+        <span class="spinner"></span> Processando estoque...
+      </div>
+    </form>
+
+    <div class="footer-sections">
+      <div class="info-box rules">
+        <h4>📌 Requisitos</h4>
+        A planilha deve conter as colunas <strong>LOCESTOQUE</strong>, <strong>GRUPO</strong>, <strong>CODIGOPRD</strong>, <strong>PRODUTO</strong>, <strong>CODUN</strong>, <strong>SALDO</strong>, <strong>CUSTOMEDIO</strong> e <strong>VALORFINANCEIRO</strong>.
+      </div>
+      <div class="info-box output">
+        <h4>✅ Resultado</h4>
+        Relatório com <strong>5 abas</strong>: Resumo Executivo (dashboard), Estoque Completo com ABC, Análise por Grupo, Top 50 Itens e Estatísticas Analíticas.
+      </div>
+    </div>
+  </div>
+
   <div style="text-align: center; margin-top: 24px; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7;">
-    Versão 1.2
+    Versão 1.3
   </div>
 </div>
 
 <script>
-  const dropZone  = document.getElementById("dropZone");
-  const fileInput = document.getElementById("arquivo");
-  const btnGerar  = document.getElementById("btnGerar");
-  const fileName  = document.getElementById("fileName");
-  const loading   = document.getElementById("loading");
+  // ── Tab Switching ──────────────────────────────────────────
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      document.getElementById(`panel-${tab}`).classList.add("active");
+    });
+  });
 
-  function onFileSelected(input) {
-    if (input.files && input.files[0]) {
-      fileName.textContent = "✅ " + input.files[0].name;
-      fileName.style.display = "block";
-      btnGerar.disabled = false;
-      
-      // Visual feedback on dropzone
-      dropZone.style.borderColor = "#22c55e";
-      dropZone.style.background = "#f0fdf4";
+  // ── Helper genérico de upload/drag-drop ────────────────────
+  function setupUploader(cfg) {
+    const dropZone  = document.getElementById(cfg.dropZoneId);
+    const fileInput = document.getElementById(cfg.fileInputId);
+    const btnGerar  = document.getElementById(cfg.btnId);
+    const fileName  = document.getElementById(cfg.fileNameId);
+    const loading   = document.getElementById(cfg.loadingId);
+    const form      = document.getElementById(cfg.formId);
+
+    const originalBtnHtml = btnGerar.innerHTML;
+
+    fileInput.addEventListener("change", () => onFile());
+
+    function onFile() {
+      if (fileInput.files && fileInput.files[0]) {
+        fileName.textContent = "✅ " + fileInput.files[0].name;
+        fileName.style.display = "block";
+        btnGerar.disabled = false;
+        dropZone.style.borderColor = "#22c55e";
+        dropZone.style.background = "#f0fdf4";
+      }
     }
+
+    form.addEventListener("submit", () => {
+      btnGerar.disabled = true;
+      btnGerar.innerHTML = "<span>⏳</span> Gerando Arquivo...";
+      loading.style.display = "block";
+      setTimeout(() => {
+        btnGerar.disabled = false;
+        btnGerar.innerHTML = originalBtnHtml;
+        loading.style.display = "none";
+      }, 60000);
+    });
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+      dropZone.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, false);
+    });
+    dropZone.addEventListener("dragover", () => dropZone.classList.add("drag-over"));
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", e => {
+      dropZone.classList.remove("drag-over");
+      const files = e.dataTransfer.files;
+      if (files.length) { fileInput.files = files; onFile(); }
+    });
   }
 
-  document.getElementById("form").addEventListener("submit", function () {
-    btnGerar.disabled = true;
-    btnGerar.innerHTML = "<span>⏳</span> Gerando Arquivo...";
-    loading.style.display = "block";
-    
-    setTimeout(() => {
-      btnGerar.disabled = false;
-      btnGerar.innerHTML = "<span>⚡</span> Gerar Relatório KPI";
-      loading.style.display = "none";
-    }, 60000);
-  });
+  // Configura as duas abas (exposed for inline onclick compatibility)
+  window.onFileSelected   = () => {};
+  window.onFileSelectedRM = () => {};
 
-  // Drag and Drop events
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, e => {
-      e.preventDefault();
-      e.stopPropagation();
-    }, false);
+  setupUploader({
+    dropZoneId: "dropZone",   fileInputId: "arquivo",    btnId: "btnGerar",
+    fileNameId: "fileName",   loadingId:   "loading",    formId: "form",
   });
-
-  dropZone.addEventListener("dragover", () => dropZone.classList.add("drag-over"));
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-  
-  dropZone.addEventListener("drop", e => {
-    dropZone.classList.remove("drag-over");
-    const files = e.dataTransfer.files;
-    if (files.length) {
-      fileInput.files = files;
-      onFileSelected(fileInput);
-    }
+  setupUploader({
+    dropZoneId: "dropZoneRM", fileInputId: "arquivoRM",  btnId: "btnGerarRM",
+    fileNameId: "fileNameRM", loadingId:   "loadingRM",  formId: "formRM",
   });
 </script>
 
